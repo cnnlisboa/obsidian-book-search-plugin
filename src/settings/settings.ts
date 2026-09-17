@@ -9,7 +9,7 @@ import { FileNameFormatSuggest } from './suggesters/FileNameFormatSuggester';
 import { FileSuggest } from './suggesters/FileSuggester';
 import { FolderSuggest } from './suggesters/FolderSuggester';
 
-const docUrl = 'https://github.com/anpigon/obsidian-book-search-plugin';
+const docUrl = 'https://github.com/connradolisboa/obsidian-book-search-plugin';
 
 export enum DefaultFrontmatterKeyType {
   snakeCase = 'Snake Case',
@@ -401,7 +401,7 @@ export class BookSearchSettingTab extends PluginSettingTab {
       })
       .addButton(button => {
         button.setButtonText('Save Token').onClick(async () => {
-          this.plugin.settings.hardcoverApiKey = tempHardcoverKeyValue;
+          this.plugin.settings.hardcoverApiKey = tempHardcoverKeyValue.trim().replace(/^Bearer\s+/i, '');
           await this.plugin.saveSettings();
           new Notice('Hardcover API token saved');
         });

@@ -14,7 +14,13 @@ const SEARCH_QUERY = `
 `;
 
 export class HardcoverBooksApi implements BaseBooksApiImpl {
-  constructor(private readonly apiKey: string) {}
+  private readonly apiKey: string;
+
+  constructor(apiKey: string) {
+    // Hardcover's account page shows the token pre-fixed with "Bearer ",
+    // so strip it (and any stray whitespace) to avoid double-prefixing the header.
+    this.apiKey = apiKey.trim().replace(/^Bearer\s+/i, '');
+  }
 
   async getByQuery(query: string): Promise<Book[]> {
     try {
