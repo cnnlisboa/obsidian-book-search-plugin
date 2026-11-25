@@ -1,5 +1,9 @@
 import { Book, FrontMatter } from '@models/book.model';
+import { MediaItem } from '@models/media.model';
 import { DefaultFrontmatterKeyType } from '@settings/settings';
+
+// Anything with string keys can be rendered into a template / file name.
+type Renderable = Book | MediaItem | Record<string, unknown>;
 
 // == Format Syntax == //
 export const NUMBER_REGEX = /^-?[0-9]*$/;
@@ -14,17 +18,59 @@ export function isISBN(str: string) {
   return /^(97(8|9))?\d{9}(\d|X)$/.test(str);
 }
 
-export function makeFileName(book: Book, fileNameFormat?: string, extension = 'md') {
-  let result;
+export function makeFileName(book: Renderable, fileNameFormat?: string, extension = 'md') {
+  const item = book as Record<string, unknown>;
+  let result: string;
   if (fileNameFormat) {
-    result = replaceVariableSyntax(book, replaceDateInString(fileNameFormat));
+    result = replaceVariableSyntax(item, replaceDateInString(fileNameFormat));
+    // "Fight Club ()" when the year is missing
+    result = result
+      .replace(/\s*\(\s*\)|\s*\[\s*\]/g, '')
+      .replace(/\s+-\s*$/, '')
+      .trim();
   } else {
-    result = !book.author ? book.title : `${book.title} - ${book.author}`;
+    result = !item.author ? String(item.title ?? '') : `${item.title} - ${item.author}`;
   }
-  return replaceIllegalFileNameCharactersInString(result) + `.${extension}`;
+  return replaceIllegalFileNameCharactersInString(result || String(item.title ?? 'Untitled')) + `.${extension}`;
 }
 
-export function changeSnakeCase(book: Book) {
+/** Turns a name into a safe wikilink target. */
+export function toWikiLink(name: string): string {
+  const target = String(name)
+    .replace(/[[\]|#^]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  return target ? `[[${target}]]` : '';
+}
+
+/** YAML flow list, e.g. ["[[Brad Pitt]]", "[[Edward Norton]]"]. Valid in frontmatter and readable by Obsidian. */
+export function toYamlList(values: string[]): string {
+  return `[${values
+    .filter(Boolean)
+    .map(v => `"${String(v).replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`)
+    .join(', ')}]`;
+}
+
+/**
+ * Variables available in templates on top of the item's own fields:
+ *  - {{<list>Links}}  YAML list of wikilinks for every list field (castLinks, genresLinks, authorsLinks…)
+ *  - {{<list>List}}   YAML list of plain strings
+ *  - {{url}}          alias of {{link}}
+ */
+export function buildTemplateVariables(item: Renderable): Record<string, unknown> {
+  const vars: Record<string, unknown> = { ...(item as Record<string, unknown>) };
+  for (const [key, value] of Object.entries(item)) {
+    if (Array.isArray(value)) {
+      const strings = value.map(v => String(v ?? '').trim()).filter(Boolean);
+      vars[`${key}Links`] = toYamlList(strings.map(toWikiLink));
+      vars[`${key}List`] = toYamlList(strings);
+    }
+  }
+  if (vars.url === undefined) vars.url = vars.link ?? '';
+  return vars;
+}
+
+export function changeSnakeCase(book: Renderable) {
   return Object.entries(book).reduce((acc, [key, value]) => {
     acc[camelToSnakeCase(key)] = value;
     return acc;
@@ -32,7 +78,7 @@ export function changeSnakeCase(book: Book) {
 }
 
 export function applyDefaultFrontMatter(
-  book: Book,
+  book: Renderable,
   frontmatter: FrontMatter | string,
   keyType: DefaultFrontmatterKeyType = DefaultFrontmatterKeyType.snakeCase,
 ) {
@@ -51,16 +97,24 @@ export function applyDefaultFrontMatter(
   return frontMater as object;
 }
 
-export function replaceVariableSyntax(book: Book, text: string): string {
+function stringifyValue(val: unknown): string {
+  if (val === undefined || val === null) return '';
+  if (Array.isArray(val)) return val.join(', ');
+  return String(val);
+}
+
+export function replaceVariableSyntax(book: Renderable, text: string): string {
   if (!text?.trim()) {
     return '';
   }
 
-  const entries = Object.entries(book);
+  // longest keys first so {{castLinks}} isn't eaten by {{cast}}
+  const entries = Object.entries(book).sort(([a], [b]) => b.length - a.length);
 
   return entries
-    .reduce((result, [key, val = '']) => {
-      return result.replace(new RegExp(`{{${key}}}`, 'ig'), val);
+    .reduce((result, [key, val]) => {
+      const replacement = stringifyValue(val);
+      return result.replace(new RegExp(`{{${key}}}`, 'ig'), () => replacement);
     }, text)
     .replace(/{{\w+}}/gi, '')
     .trim();

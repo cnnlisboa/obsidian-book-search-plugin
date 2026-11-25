@@ -1,10 +1,13 @@
 import { apiGet, BaseBooksApiImpl } from '@apis/base_api';
 import { Book } from '@models/book.model';
+import { SearchResult } from '@models/media.model';
 import { GoogleBooksResponse, VolumeInfo } from './models/google_books_response';
 
 export class GoogleBooksApi implements BaseBooksApiImpl {
   private static readonly MAX_RESULTS = 40;
   private static readonly PRINT_TYPE = 'books';
+
+  readonly sourceName = 'Google Books';
 
   constructor(
     private readonly localePreference: string,
@@ -31,15 +34,30 @@ export class GoogleBooksApi implements BaseBooksApiImpl {
   }
 
   async getByQuery(query: string, options?: Record<string, string>): Promise<Book[]> {
+    return (await this.getResults(query, options)).map(result => result.item);
+  }
+
+  async getResults(query: string, options?: Record<string, string>): Promise<SearchResult<Book>[]> {
     try {
       const params = this.buildSearchParams(query, options);
       const searchResults = await apiGet<GoogleBooksResponse>('https://www.googleapis.com/books/v1/volumes', params);
-      if (!searchResults?.totalItems) return [];
-      return searchResults.items.map(({ volumeInfo }) => this.createBookItem(volumeInfo));
+      if (!searchResults?.totalItems || !searchResults.items) return [];
+      return searchResults.items.map(({ id, volumeInfo }, position) => ({
+        item: this.createBookItem(volumeInfo),
+        source: this.sourceName,
+        sourceId: id,
+        position,
+        popularity: volumeInfo.ratingsCount ?? 0,
+      }));
     } catch (error) {
       console.warn(error);
       throw error;
     }
+  }
+
+  buildQuery(title: string, creator?: string, isbn?: string): string {
+    if (isbn) return `isbn:${isbn}`;
+    return creator ? `intitle:${title} inauthor:${creator}` : title;
   }
 
   private extractISBNs(industryIdentifiers: VolumeInfo['industryIdentifiers']): Record<string, string> {

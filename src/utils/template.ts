@@ -1,4 +1,5 @@
 import { Book } from '@models/book.model';
+import { MediaItem } from '@models/media.model';
 import { App, normalizePath, Notice, TFile } from 'obsidian';
 
 export async function getTemplateContents(app: App, templatePath: string | undefined): Promise<string> {
@@ -43,7 +44,11 @@ export function applyTemplateTransformations(rawTemplateContents: string): strin
   );
 }
 
-export function executeInlineScriptsTemplates(book: Book, text: string) {
+/**
+ * Runs <%= ... %> snippets. The item is available as `book` (for older templates),
+ * `media`, and its type name: `movie`, `series`, `album`, `track`, `artist`.
+ */
+export function executeInlineScriptsTemplates(book: Book | MediaItem, text: string) {
   const commandRegex = /<%(?:=)(.+)%>/g;
   const ctor = getFunctionConstructor();
   const matchedList = [...text.matchAll(commandRegex)];
@@ -52,6 +57,7 @@ export function executeInlineScriptsTemplates(book: Book, text: string) {
       const outputs = new ctor(
         [
           'const [book] = arguments',
+          'const media = book, movie = book, series = book, show = book, album = book, track = book, song = book, artist = book',
           `const output = ${script}`,
           'if(typeof output === "string") return output',
           'return JSON.stringify(output)',

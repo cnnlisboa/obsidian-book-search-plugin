@@ -1,12 +1,20 @@
 import { Book } from '@models/book.model';
+import { SearchResult } from '@models/media.model';
 import { apiGet, BaseBooksApiImpl } from './base_api';
 import { NaverBookItem, NaverBooksResponse } from './models/naver_books_response';
 
 export class NaverBooksApi implements BaseBooksApiImpl {
+  readonly sourceName = 'Naver';
+
   constructor(
     private readonly clientId,
     private readonly clientSecret: string,
   ) {}
+
+  async getResults(query: string): Promise<SearchResult<Book>[]> {
+    const books = await this.getByQuery(query);
+    return books.map((item, position) => ({ item, source: this.sourceName, position }));
+  }
 
   async getByQuery(query: string) {
     try {

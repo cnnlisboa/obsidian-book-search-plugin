@@ -1,7 +1,7 @@
 {
   "name": "obsidian-book-search-plugin-fork",
   "version": "0.7.5",
-  "description": "This is a plugin to help you create book notes.",
+  "description": "Create notes for books, movies, TV shows, albums, songs and artists.",
   "homepage": "https://github.com/connradolisboa/obsidian-book-search-plugin",
   "main": "main.js",
   "standard-version": {

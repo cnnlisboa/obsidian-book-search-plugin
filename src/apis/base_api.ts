@@ -1,4 +1,5 @@
 import { Book } from '@models/book.model';
+import { SearchResult } from '@models/media.model';
 import { BookSearchPluginSettings } from '@settings/settings';
 import { ServiceProvider } from '@src/constants';
 import { requestUrl } from 'obsidian';
@@ -7,7 +8,13 @@ import { HardcoverBooksApi } from './hardcover_books_api';
 import { NaverBooksApi } from './naver_books_api';
 
 export interface BaseBooksApiImpl {
+  /** Provider label shown next to results. */
+  readonly sourceName: string;
   getByQuery(query: string, options?: Record<string, string>): Promise<Book[]>;
+  /** Same as getByQuery but keeps ranking signals (popularity, position). */
+  getResults(query: string, options?: Record<string, string>): Promise<SearchResult<Book>[]>;
+  /** Builds the provider's best query string for a structured query. */
+  buildQuery?(title: string, creator?: string, isbn?: string): string;
 }
 
 class ConfigurationError extends Error {
