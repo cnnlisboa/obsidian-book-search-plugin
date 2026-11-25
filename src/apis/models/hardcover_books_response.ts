@@ -18,7 +18,12 @@ export interface HardcoverContribution {
 export interface HardcoverBookDocument {
   id: string;
   title: string;
+  subtitle?: string;
   description?: string;
+  author_names?: string[];
+  users_count?: number;
+  ratings_count?: number;
+  rating?: number;
   release_date?: string;
   release_year?: number;
   pages?: number;

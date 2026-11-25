@@ -50,3 +50,27 @@ describe('util.js', () => {
     expect(utils.makeFileName(newBook, '{{title}} - {{author}}')).toBe('코스모스 창백한 푸른점 - 칼 세이건.md');
   });
 });
+
+describe('template variables', () => {
+  it('adds Links / List variables for every list and a url alias', () => {
+    const vars = utils.buildTemplateVariables({
+      title: 'Fight Club',
+      cast: ['Brad Pitt', 'Edward Norton'],
+      link: 'https://example.com',
+    });
+    expect(vars.castLinks).toBe('["[[Brad Pitt]]", "[[Edward Norton]]"]');
+    expect(vars.castList).toBe('["Brad Pitt", "Edward Norton"]');
+    expect(vars.url).toBe('https://example.com');
+    expect(utils.replaceVariableSyntax(vars, 'cast: {{castLinks}}\nnames: {{cast}}')).toBe(
+      'cast: ["[[Brad Pitt]]", "[[Edward Norton]]"]\nnames: Brad Pitt, Edward Norton',
+    );
+  });
+
+  it('drops empty brackets when a value is missing from the file name', () => {
+    expect(utils.makeFileName({ title: 'Fight Club', year: '' }, '{{title}} ({{year}})')).toBe('Fight Club.md');
+  });
+
+  it('strips characters that break wikilinks', () => {
+    expect(utils.toWikiLink('AC/DC [Live] | #1')).toBe('[[AC/DC Live 1]]');
+  });
+});

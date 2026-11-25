@@ -1,5 +1,5 @@
 import { ServiceProvider } from '@src/constants';
-import BookSearchPlugin from '@src/main';
+import type BookSearchPlugin from '@src/main';
 import { Modal, Setting } from 'obsidian';
 
 export class SettingServiceProviderModal extends Modal {

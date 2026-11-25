@@ -1,9 +1,9 @@
 {
   "id": "obsidian-book-search-plugin-fork",
-  "name": "Book Search (Fork)",
+  "name": "Media Search",
   "version": "0.6.3",
   "minAppVersion": "0.15.0",
-  "description": "Helps you find books and create notes.",
+  "description": "Create notes for books, movies, TV shows, albums, songs and artists, with smart search and bulk import from lists.",
   "author": "Connrado Lisboa",
   "authorUrl": "https://github.com/connradolisboa",
   "isDesktopOnly": false
